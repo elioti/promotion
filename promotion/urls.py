@@ -18,14 +18,15 @@ from django.contrib import admin
 from rest_framework.routers import DefaultRouter
 from item.views import PrizeViewSet
 from rest_framework_jwt.views import obtain_jwt_token
-
+from utils.views import ObtainSessionWebToken
 router = DefaultRouter()
 router.register(r'prizes', PrizeViewSet, base_name='prizes')
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'', include(router.urls)),
-    url(r'^login', obtain_jwt_token),
+    # url(r'^login', ObtainSessionWebToken.as_view()),
+    url(r'login', obtain_jwt_token),
     url(r'api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
 ]
