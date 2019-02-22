@@ -20,6 +20,6 @@ class PrizeViewSet(viewsets.ModelViewSet):
     serializer_class = PrizeSerializer
     queryset = Prize.objects.all()
     filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
-    filterset_fields = ('code', 'id')
-    ordering_fields = ('code', 'id')
+    filterset_fields = ('prize_name', 'id')
+    ordering_fields = ('prize_name', 'id')
 

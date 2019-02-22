@@ -9,6 +9,7 @@ from django.utils.translation import ugettext as _
 from rest_framework_jwt.views import JSONWebTokenAPIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 
 
 class CustomAuthSerializer(JSONWebTokenSerializer):
@@ -52,3 +53,10 @@ class ObtainSessionWebToken(JSONWebTokenAPIView):
             return Response(status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GoodsPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'limit'
+    page_query_param = "page"
+    max_page_size = 50

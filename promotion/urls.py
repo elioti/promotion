@@ -17,11 +17,14 @@ from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework.routers import DefaultRouter
 from item.views import PrizeViewSet
+from member.views import RecViewSet
+from user.views import AdminViewSet
 from rest_framework_jwt.views import obtain_jwt_token
 from utils.views import ObtainSessionWebToken
 router = DefaultRouter()
 router.register(r'prizes', PrizeViewSet, base_name='prizes')
-
+router.register(r'records', RecViewSet, base_name='records')
+router.register(r'users', AdminViewSet, base_name='users')
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'', include(router.urls)),

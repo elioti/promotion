@@ -119,7 +119,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -146,9 +146,12 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'utils.views.GoodsPagination',
 }
+import datetime
 JWT_AUTH = {
     'JWT_AUTH_COOKIE': 'jwt',
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1)
 }
 
 
