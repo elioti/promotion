@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'user.apps.UserConfig',
     'rest_framework',
     'django_filters',
-    'rest_framework.authtoken',
+    # 'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -143,16 +143,16 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
       'django_filters.rest_framework.DjangoFilterBackend',
     ),
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-    ),
+    # 'DEFAULT_AUTHENTICATION_CLASSES': (
+    #     'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+    # ),
     'DEFAULT_PAGINATION_CLASS': 'utils.views.GoodsPagination',
 }
-import datetime
-JWT_AUTH = {
-    'JWT_AUTH_COOKIE': 'jwt',
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1)
-}
+# import datetime
+# # JWT_AUTH = {
+# #     'JWT_AUTH_COOKIE': 'jwt',
+# #     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1)
+# # }
 
 
 CORS_ORIGIN_ALLOW_ALL = True

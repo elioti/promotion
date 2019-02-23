@@ -28,8 +28,8 @@ router.register(r'users', AdminViewSet, base_name='users')
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'', include(router.urls)),
-    # url(r'^login', ObtainSessionWebToken.as_view()),
-    url(r'login', obtain_jwt_token),
+    url(r'^login', ObtainSessionWebToken.as_view()),
+    # url(r'login', obtain_jwt_token),
     url(r'api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
 ]
