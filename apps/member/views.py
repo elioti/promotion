@@ -9,11 +9,17 @@ from django_filters import rest_framework
 from utils.views import GoodsPagination
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework_extensions.mixins import ListUpdateModelMixin
+from rest_framework_bulk import (
+    BulkListSerializer,
+    BulkSerializerMixin,
+    ListBulkCreateUpdateDestroyAPIView,
+)
 
 # Create your views here.
 
 
-class RecViewSet(viewsets.ModelViewSet):
+class RecViewSet(ListBulkCreateUpdateDestroyAPIView):
     """
     list:
     create:
@@ -40,11 +46,18 @@ class RecViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        data["prizeName"] = "这是一份超级大礼包啊啊啊"
-        data["ip"] = "127.120.110.111"
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # serializer = self.get_serializer(data=data)
+        # serializer.is_valid(raise_exception=True)
+        # self.perform_create(serializer)
+        bulk = isinstance(request.data, list)
+        if not bulk:
+            request.data = data
+            return super(RecViewSet, self).create(request, *args, **kwargs)
+
+        else:
+            serializer = self.get_serializer(data=request.data, many=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_bulk_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
