@@ -28,3 +28,20 @@ class Info(models.Model):
     end_time = models.DateTimeField(verbose_name='结束时间')
 
 
+class Rule(models.Model):
+    """
+    内定规则
+    """
+    user = models.CharField('活动用户', max_length=32)
+    sequence = models.CharField('顺序', max_length=64)
+    flag = models.IntegerField('标记', default=1)
+    addTime = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    def get_order(self):
+        order_list = self.sequence.split('.')
+        if 0 < self.flag < len(order_list):
+            return int(order_list[self.flag-1])
+        else:
+            return None
+
+

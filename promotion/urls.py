@@ -23,7 +23,7 @@ from rest_framework_jwt.views import obtain_jwt_token
 from utils.views import ObtainSessionWebToken
 router = DefaultRouter()
 router.register(r'prizes', PrizeViewSet, base_name='prizes')
-# router.register(r'records', RecViewSet, base_name='records')
+router.register(r'records', RecViewSet, base_name='records')
 router.register(r'users', AdminViewSet, base_name='users')
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
@@ -31,6 +31,6 @@ urlpatterns = [
     # url(r'^login', ObtainSessionWebToken.as_view()),
     url(r'login', obtain_jwt_token),
     url(r'api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'records', RecViewSet.as_view(), name='records')
+    # url(r'records', RecViewSet.as_view(), name='records')
 
 ]

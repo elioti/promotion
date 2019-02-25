@@ -11,18 +11,14 @@ from rest_framework_bulk import (
 from rest_framework_extensions import bulk_operations
 
 
-class RecSerializer(BulkSerializerMixin, serializers.ModelSerializer):
+class RecSerializer(serializers.ModelSerializer):
     # def validate(self, attrs):
     #     attrs["ip"] = "127.0.0.1"
     #     attrs["prizeName"] = "这是一份随机的礼物"
     #     return attrs
-    def get_ip(self, obj):
-        return "127.120.110.111"
-    def get_prizeName(self, obj):
-        return "这是一份超级大礼包啊啊啊"
     class Meta:
         model = Rec
-        list_serializer_class = BulkListSerializer
+        # list_serializer_class = BulkListSerializer  # 当需要使用Bulk update时使用
         fields = "__all__"
         # exclude = ["ip", "prizeName"]
-
+        extra_kwargs = {'ip': {'read_only': True}, 'prizeName': {'read_only': True}}
