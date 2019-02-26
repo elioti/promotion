@@ -1,9 +1,12 @@
 from django.shortcuts import render
+from django.http.response import JsonResponse
+import bisect, random, datetime, pytz
 from member.serializers import RecSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
-from member.models import Rec
-from item.models import Rule
+from member.models import Rec, Member
+from item.models import Rule, Info
+from
 from django_filters import rest_framework as filters
 from rest_framework import filters
 from django_filters import rest_framework
@@ -63,11 +66,11 @@ class RecViewSet(viewsets.ModelViewSet):
     #         headers = self.get_success_headers(serializer.data)
     #         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-    def get_serializer(self, *args, **kwargs):
-        # kwargs['context'] = {'request': self.request}
-        if isinstance(kwargs.get('data', {}), list):
-            kwargs['many'] = True
-        return super().get_serializer(*args, **kwargs)
+    # def get_serializer(self, *args, **kwargs):
+    #     # kwargs['context'] = {'request': self.request}
+    #     if isinstance(kwargs.get('data', {}), list):
+    #         kwargs['many'] = True
+    #     return super().get_serializer(*args, **kwargs)
 
     def perform_create(self, serializer):
         if 'HTTP_X_FORWARDED_FOR' in self.request.META.values():
@@ -78,7 +81,38 @@ class RecViewSet(viewsets.ModelViewSet):
             serializer.save(ip=ip, prizeName='哈哈哈哈或或或')
         else:
             # 抽奖代码
-            Rule.objects.get(user=self.request.user)
+            info = Info.objects.last()
+            if info is None:
+                return JsonResponse({'code':1, 'error':'请联系网站管理员，初始活动信息'})
+            now = datetime.datetime.utcnow().replace(tzinfo=pytz.timezone('UTC'))
+            if now < info.start_time or now > info.end_time:
+                return JsonResponse({'code':2, 'error':'不在活动时间内','message':info.errmsg})
+            user = serializer.data['user']
+            try:
+                member = Member.objects.get(username=user)
+            except Member.DoesNotExist:
+                return JsonResponse({'code':3,'error':'账号不满足活动要求'})
+            # 判断是否有次数
+            if member.score < 1:
+                return JsonResponse({'code':4,'error':'账号已没有活动次数'})
+            try:
+                # 判断是否有内定规则
+                rule = Rule.objects.get(user=self.request.user)
+                code = rule.get_order()
+                if code is None:
+                    raise Rule.DoesNotExist
+            except Rule.DoesNotExist:
+                # 自然抽奖
+                pass
+            else:
+                serializer.save(
+                    ip=ip,
+                    prizeName='内定的礼品',
+                    prizeId=code,
+                    type=1,
+                )
+                rule.flag = rule.flag+1
+
 
 
 
