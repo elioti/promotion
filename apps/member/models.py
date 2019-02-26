@@ -3,21 +3,6 @@ from django.db import models
 # Create your models here.
 
 
-class Member(models.Model):
-    """
-    活动用户
-    """
-    username = models.CharField("会员账号", max_length=32)
-    score = models.IntegerField("活动次数", default=0)
-
-    class Mete:
-        verbose_name = "活动用户"
-        verbose_name_plural = verbose_name
-
-    def __str__(self):
-        return str(self.username)
-
-
 class Rec(models.Model):
     """
     活动记录

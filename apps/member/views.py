@@ -4,9 +4,8 @@ import bisect, random, datetime, pytz
 from member.serializers import RecSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
-from member.models import Rec, Member
-from item.models import Rule, Info
-from
+from member.models import Rec
+from item.models import Rule, Info, Prize
 from django_filters import rest_framework as filters
 from rest_framework import filters
 from django_filters import rest_framework
@@ -38,13 +37,11 @@ class RecViewSet(viewsets.ModelViewSet):
     ordering_fields = ('user', 'id')
     # pagination_class = GoodsPagination
     def list(self, request, *args, **kwargs):
-        print(self.request)
         queryset = self.filter_queryset(self.get_queryset())
 
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            print(serializer.data)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -72,46 +69,68 @@ class RecViewSet(viewsets.ModelViewSet):
     #         kwargs['many'] = True
     #     return super().get_serializer(*args, **kwargs)
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         if 'HTTP_X_FORWARDED_FOR' in self.request.META.values():
             ip = self.request.META['HTTP_X_FORWARDED_FOR']
         else:
             ip = self.request.META['REMOTE_ADDR']
+        prizes = Prize.objects.all()
         if self.request.user.is_staff:
-            serializer.save(ip=ip, prizeName='哈哈哈哈或或或')
+            prize = prizes.get(code=serializer.validated_data['code'])
+            serializer.save(ip=ip, prizeName=prize.prize_name)
         else:
             # 抽奖代码
             info = Info.objects.last()
             if info is None:
-                return JsonResponse({'code':1, 'error':'请联系网站管理员，初始活动信息'})
+                return JsonResponse({'code': 1, 'error': '请联系网站管理员，初始活动信息'})
             now = datetime.datetime.utcnow().replace(tzinfo=pytz.timezone('UTC'))
-            if now < info.start_time or now > info.end_time:
-                return JsonResponse({'code':2, 'error':'不在活动时间内','message':info.errmsg})
-            user = serializer.data['user']
+            if now < info.start_time or now > info.end_time or info.is_open is False:
+                return JsonResponse({'code': 2, 'error': '不在活动时间内','message':info.errmsg})
+            user = serializer.validated_data['user']
             try:
-                member = Member.objects.get(username=user)
-            except Member.DoesNotExist:
-                return JsonResponse({'code':3,'error':'账号不满足活动要求'})
-            # 判断是否有次数
-            if member.score < 1:
-                return JsonResponse({'code':4,'error':'账号已没有活动次数'})
-            try:
-                # 判断是否有内定规则
-                rule = Rule.objects.get(user=self.request.user)
-                code = rule.get_order()
-                if code is None:
-                    raise Rule.DoesNotExist
+                rule = Rule.objects.get(user=user)
             except Rule.DoesNotExist:
-                # 自然抽奖
-                pass
-            else:
+                return JsonResponse({'code': 3, 'error': '账号不满足活动要求'})
+            # 判断是否有次数
+            if rule.score < 1:
+                return JsonResponse({'code': 4, 'error': '账号已没有活动次数'})
+            code = rule.get_order()
+            if code is None:
+                prize_probs = [prize.probability for prize in prizes]
+                total = sum(prize_probs)
+                acc = list(self.accumulate(prize_probs))
+                sernum = bisect.bisect_right(acc, random.uniform(0, total))
+                prize = prizes[sernum]
                 serializer.save(
                     ip=ip,
-                    prizeName='内定的礼品',
+                    prizeName=prize.prize_name,
+                    prizeId=prize.code,
+                    type=0
+                )
+                rule.score = rule.score - 1
+                rule.save()
+            else:
+                prize = prizes.get(code=code)  # todo except
+                serializer.save(
+                    ip=ip,
+                    prizeName=prize.prize_name,
                     prizeId=code,
                     type=1,
                 )
-                rule.flag = rule.flag+1
+                rule.score = rule.score - 1
+                rule.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+    @staticmethod
+    def accumulate(weights):
+        cur = 0
+        for w in weights:
+            cur = cur + w
+            yield cur
 
 
 
