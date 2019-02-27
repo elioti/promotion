@@ -1,73 +1,67 @@
-from django.shortcuts import render
-from django.http.response import JsonResponse
-import bisect, random, datetime, pytz
-from member.serializers import RecSerializer
-from rest_framework.permissions import IsAuthenticated
+from .serializers import AdminSerializer, PrizeSerializer, RuleSerializer, RecSerializer, MemberRecSerializer, InfoSerializer
 from rest_framework import viewsets
-from member.models import Rec
-from item.models import Rule, Info, Prize
-from django_filters import rest_framework as filters
+from .models import *
 from rest_framework import filters
+from rest_framework.permissions import IsAuthenticated
 from django_filters import rest_framework
-from utils.views import GoodsPagination
+from django.http.response import JsonResponse
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework_extensions.mixins import ListUpdateModelMixin
-from rest_framework_bulk import (
-    BulkListSerializer,
-    BulkSerializerMixin,
-    ListBulkCreateUpdateDestroyAPIView,
-)
-
+from rest_framework import permissions, authentication
+import bisect
+import random
+import datetime
+import pytz
 # Create your views here.
 
 
-class RecViewSet(viewsets.ModelViewSet):
-    """
-    list:
-    create:
-    update:
-    delete:
-    """
-    # permission_classes = (IsAuthenticated, )
-    serializer_class = RecSerializer
-    queryset = Rec.objects.all()
+class AdminViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = AdminSerializer
+    queryset = SiteAdmin.objects.all()
+    filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
+    filterset_fields = ('username', 'id')
+    ordering_fields = ('username', 'id')
+
+
+class PrizeViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated, )
+    serializer_class = PrizeSerializer
+    queryset = Prize.objects.all()
+    filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
+    filterset_fields = ('prize_name', 'id')
+    ordering_fields = ('prize_name', 'id')
+
+
+class RuleViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated, )
+    serializer_class = RuleSerializer
+    queryset = Rule.objects.all()
     filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
     filterset_fields = ('user', 'id')
-    ordering_fields = ('user', 'id')
-    # pagination_class = GoodsPagination
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+    ordering_fields = ('id',)
 
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
-    # def create(self, request, *args, **kwargs):
-    #     data = request.data
-    #     # serializer = self.get_serializer(data=data)
-    #     # serializer.is_valid(raise_exception=True)
-    #     # self.perform_create(serializer)
-    #     bulk = isinstance(request.data, list)
-    #     if not bulk:
-    #         request.data = data
-    #         return super(RecViewSet, self).create(request, *args, **kwargs)
-    #
-    #     else:
-    #         serializer = self.get_serializer(data=request.data, many=True)
-    #         serializer.is_valid(raise_exception=True)
-    #         self.perform_bulk_create(serializer)
-    #         headers = self.get_success_headers(serializer.data)
-    #         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+class InfoViewSet(viewsets.ModelViewSet):
+    serializer_class = InfoSerializer
+    queryset = Info.objects.all()
 
-    # def get_serializer(self, *args, **kwargs):
-    #     # kwargs['context'] = {'request': self.request}
-    #     if isinstance(kwargs.get('data', {}), list):
-    #         kwargs['many'] = True
-    #     return super().get_serializer(*args, **kwargs)
+
+class RecViewSet(viewsets.ModelViewSet):
+    serializer_class = RecSerializer
+    queryset = Rec.objects.get_queryset().order_by('id')
+    filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
+    filterset_fields = ('user', 'id')
+    ordering_fields = ('id',)
+
+    def get_permissions(self):
+        pass
+
+    def get_serializer_class(self):
+        if self.request.user.is_staff:
+            return RecSerializer
+        else:
+            return MemberRecSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -82,12 +76,16 @@ class RecViewSet(viewsets.ModelViewSet):
             serializer.save(ip=ip, prizeName=prize.prize_name)
         else:
             # 抽奖代码
-            info = Info.objects.last()
-            if info is None:
-                return JsonResponse({'code': 1, 'error': '请联系网站管理员，初始活动信息'})
             now = datetime.datetime.utcnow().replace(tzinfo=pytz.timezone('UTC'))
-            if now < info.start_time or now > info.end_time or info.is_open is False:
-                return JsonResponse({'code': 2, 'error': '不在活动时间内','message':info.errmsg})
+            try:
+                info, _ = Info.objects.get_or_create(defaults={
+                    'start_time': now,
+                    'end_time': now
+                })
+            except Info.MultipleObjectsReturned:
+                info = Info.objects.last()
+            if info.is_open is False or now < info.start_time or now > info.end_time:
+                return JsonResponse({'code': 2, 'error': '不在活动时间内', 'message': info.errmsg})
             user = serializer.validated_data['user']
             try:
                 rule = Rule.objects.get(user=user)
@@ -124,14 +122,9 @@ class RecViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-
     @staticmethod
     def accumulate(weights):
         cur = 0
         for w in weights:
             cur = cur + w
             yield cur
-
-
-
-

@@ -11,21 +11,22 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
-import sys
+import datetime
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, BASE_DIR)
-sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '4g9k_ov&)+xia9u#=427l756f@k9fnf&*&kk6_lw&!0ga&%z^5'
+SECRET_KEY = '9cvy*$+9!bv%)v@_=*f^4_fs06z32rluz_uhu2azvhngs^xwcz'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -38,12 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'item.apps.ItemConfig',
-    'member.apps.MemberConfig',
-    'user.apps.UserConfig',
+    'main.apps.MainConfig',
     'rest_framework',
     'django_filters',
-    # 'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -51,7 +49,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -83,8 +81,12 @@ WSGI_APPLICATION = 'promotion.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'promotion',  # 数据库名
+        'HOST': '192.168.139.128',  # 数据库主机ip
+        'PORT': 3306,
+        'USER': 'root',  # 登录用户名
+        'PASSWORD': 'mysql'  # 登录用户密码
     }
 }
 
@@ -127,18 +129,18 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-AUTH_USER_MODEL = 'user.SiteAdmin'
+# 认证的模型类
+AUTH_USER_MODEL = 'main.SiteAdmin'
 
-# REST_FRAMEWORK = {
-#     'DEFAULT_PERMISSION_CLASSES': (
-#         'rest_framework.permissions.IsAuthenticated',
-#     ),
-#     'DEFAULT_AUTHENTICATION_CLASSES': (
-#         # 'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-#         'rest_framework.authentication.SessionAuthentication',
-#         'rest_framework.authentication.BasicAuthentication',
-#     ),
-# }
+# rest_framework_jwt设置
+JWT_AUTH = {
+    'JWT_AUTH_COOKIE': 'jwt',
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=1),
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'utils.jwt.jwt_response_payload_handler',
+    'JWT_GET_USER_SECRET_KEY': 'utils.jwt.jwt_get_user_secret_key'
+}
+
+# rest_framework设置
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
       'django_filters.rest_framework.DjangoFilterBackend',
@@ -147,16 +149,11 @@ REST_FRAMEWORK = {
     #     'rest_framework.permissions.IsAuthenticated',
     # ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'utils.jwt.JwtAuthentication',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'utils.views.GoodsPagination',
-}
-import datetime
-JWT_AUTH = {
-    'JWT_AUTH_COOKIE': 'jwt',
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=2),
-    'JWT_GET_USER_SECRET_KEY':'utils.views.jwt_get_user_secret_key'
+    # Pagination
+    'DEFAULT_PAGINATION_CLASS': 'utils.pagination.Pagination',
 }
 
-
+# 跨域设置
 CORS_ORIGIN_ALLOW_ALL = True
