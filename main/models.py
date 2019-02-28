@@ -38,11 +38,13 @@ class Rule(models.Model):
     addTime = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
     def get_order(self):
-        order_list = self.sequence.split('.')
+        if self.sequence.strip() == '':
+            return None
+        order_list = self.sequence.split('|')
         if 0 < self.flag <= len(order_list):
             order = order_list[self.flag-1]
             self.flag = self.flag + 1
-            if len(order.strip()) == 0:
+            if order.strip() == '?':
                 return None
             else:
                 return int(order)

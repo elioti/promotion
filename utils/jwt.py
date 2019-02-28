@@ -45,5 +45,6 @@ def jwt_response_payload_handler(token, user=None, request=None):
     user_logged_in.send(sender=user.__class__, request=request, user=user)
     return {
         'token': token,
-        'role': user.role
+        'role': user.role,
+        'name': user.username
     }

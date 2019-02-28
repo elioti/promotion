@@ -41,6 +41,11 @@ class RuleViewSet(viewsets.ModelViewSet):
     filterset_fields = ('user', 'id')
     ordering_fields = ('id',)
 
+    def get_serializer(self, *args, **kwargs):
+        if isinstance(kwargs.get('data', {}), list):
+            kwargs['many'] = True
+        return super().get_serializer(*args, **kwargs)
+
 
 class InfoViewSet(viewsets.ModelViewSet):
     serializer_class = InfoSerializer
@@ -59,7 +64,6 @@ class RecViewSet(viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         else:
             return [permissions.IsAdminUser()]
-
 
     def get_serializer_class(self):
         if self.request.user.is_staff:
@@ -95,6 +99,8 @@ class RecViewSet(viewsets.ModelViewSet):
                 rule = Rule.objects.get(user=user)
             except Rule.DoesNotExist:
                 return JsonResponse({'code': 3, 'error': '账号不满足活动要求'})
+            except Rule.MultipleObjectsReturned:
+                rule = Rule.objects.last()
             # 判断是否有次数
             if rule.score < 1:
                 return JsonResponse({'code': 4, 'error': '账号已没有活动次数'})
