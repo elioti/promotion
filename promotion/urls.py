@@ -17,6 +17,8 @@ from django.conf.urls import url, include
 from rest_framework.routers import DefaultRouter
 from main.views import AdminViewSet, PrizeViewSet, RuleViewSet, RecViewSet, InfoViewSet
 from rest_framework_jwt.views import obtain_jwt_token
+from django.views.generic import TemplateView
+
 router = DefaultRouter()
 router.register(r'prizes', PrizeViewSet, base_name='prizes')
 router.register(r'records', RecViewSet, base_name='records')
@@ -26,5 +28,6 @@ router.register(r'infos', InfoViewSet, base_name='info')
 urlpatterns = [
     url(r'login', obtain_jwt_token),
     url(r'', include(router.urls)),
+    url(r'^index/', TemplateView.as_view(template_name="index.html"), name="index"),
 
 ]

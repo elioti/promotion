@@ -103,4 +103,8 @@ venv.bak/
 .mypy_cache/
 
 # idea
-.idea/workspace.xml
+.idea/
+
+# static
+static/
+templates/index.html

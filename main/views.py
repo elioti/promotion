@@ -55,7 +55,11 @@ class RecViewSet(viewsets.ModelViewSet):
     ordering_fields = ('id',)
 
     def get_permissions(self):
-        pass
+        if self.action in ['create', 'list']:
+            return [permissions.AllowAny()]
+        else:
+            return [permissions.IsAdminUser()]
+
 
     def get_serializer_class(self):
         if self.request.user.is_staff:
@@ -72,8 +76,8 @@ class RecViewSet(viewsets.ModelViewSet):
             ip = self.request.META['REMOTE_ADDR']
         prizes = Prize.objects.all()
         if self.request.user.is_staff:
-            prize = prizes.get(code=serializer.validated_data['code'])
-            serializer.save(ip=ip, prizeName=prize.prize_name)
+            prize = prizes.get(code=serializer.validated_data['prizeId'])
+            serializer.save(ip=ip, prizeName=prize.prize_name, type=2)
         else:
             # 抽奖代码
             now = datetime.datetime.utcnow().replace(tzinfo=pytz.timezone('UTC'))
