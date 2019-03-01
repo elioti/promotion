@@ -83,7 +83,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'promotion',  # 数据库名
-        'HOST': '192.168.139.128',  # 数据库主机ip
+        'HOST': '192.168.139.136',  # 数据库主机ip
         # 'HOST': '192.168.1.11',
         'PORT': 3306,
         'USER': 'root',  # 登录用户名

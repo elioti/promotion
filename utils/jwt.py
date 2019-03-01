@@ -12,7 +12,7 @@ from django.utils.encoding import smart_text
 from rest_framework import exceptions
 from django.utils.translation import ugettext as _
 from django.contrib.auth.signals import user_logged_in
-
+from
 
 class JwtAuthentication(JSONWebTokenAuthentication):
     def get_jwt_value(self, request):
@@ -45,6 +45,6 @@ def jwt_response_payload_handler(token, user=None, request=None):
     user_logged_in.send(sender=user.__class__, request=request, user=user)
     return {
         'token': token,
-        'role': user.role,
+        'roles': [user.role],
         'name': user.username
     }
