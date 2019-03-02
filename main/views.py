@@ -3,11 +3,13 @@ from rest_framework import viewsets
 from .models import *
 from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated
+from utils.permission import IsSuperUser
 from django_filters import rest_framework
 from django.http.response import JsonResponse
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import permissions, authentication
+from django.contrib.auth.hashers import make_password
 import bisect
 import random
 import datetime
@@ -16,18 +18,20 @@ import pytz
 
 
 class AdminViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsSuperUser,)
     serializer_class = AdminSerializer
-    queryset = SiteAdmin.objects.all()
-    filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
-    filterset_fields = ('username', 'id')
-    ordering_fields = ('username', 'id')
+    queryset = SiteAdmin.objects.all().order_by('id')
+    filter_backends = (rest_framework.DjangoFilterBackend, filters.OrderingFilter,)
+    ordering_fields = ('id',)
+
+    def perform_create(self, serializer):
+        serializer.save(password=make_password(serializer.validated_data['password']), is_staff=True)
 
 
 class PrizeViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, )
     serializer_class = PrizeSerializer
-    queryset = Prize.objects.all()
+    queryset = Prize.objects.all().order_by('id')
     filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
     filterset_fields = ('prize_name', 'id')
     ordering_fields = ('prize_name', 'id')
@@ -36,7 +40,7 @@ class PrizeViewSet(viewsets.ModelViewSet):
 class RuleViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, )
     serializer_class = RuleSerializer
-    queryset = Rule.objects.all()
+    queryset = Rule.objects.all().order_by('id')
     filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
     filterset_fields = ('user', 'id')
     ordering_fields = ('id',)
@@ -49,18 +53,19 @@ class RuleViewSet(viewsets.ModelViewSet):
 
 class InfoViewSet(viewsets.ModelViewSet):
     serializer_class = InfoSerializer
-    queryset = Info.objects.all()
+    queryset = Info.objects.all().order_by('id')
 
 
 class RecViewSet(viewsets.ModelViewSet):
     serializer_class = RecSerializer
-    queryset = Rec.objects.get_queryset().order_by('id')
+    queryset = Rec.objects.all().order_by('id')
     filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
-    filterset_fields = ('user', 'id')
+    filterset_fields = ('user',)
     ordering_fields = ('id',)
 
     def get_permissions(self):
-        if self.action in ['create', 'list']:
+        params = self.request.query_params
+        if self.action == 'create' or self.action == 'list' and 'user' in params and params['user']:
             return [permissions.AllowAny()]
         else:
             return [permissions.IsAdminUser()]

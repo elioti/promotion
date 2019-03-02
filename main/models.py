@@ -7,7 +7,6 @@ class SiteAdmin(AbstractUser):
     """
     网站管理员
     """
-    role = models.CharField('角色', max_length=64, default='editor')
 
     def __str__(self):
         return str(self.username)

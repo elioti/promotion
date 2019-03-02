@@ -11,7 +11,10 @@ class AdminSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = ("id", "username", "is_superuser", "last_login")
+        fields = ("id", "username", "is_superuser", "last_login", "password")
+        extra_kwargs = {
+            "password": {'write_only': True}
+        }
 
 
 class PrizeSerializer(serializers.ModelSerializer):

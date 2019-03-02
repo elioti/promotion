@@ -16,7 +16,7 @@ Including another URLconf
 from django.conf.urls import url, include
 from rest_framework.routers import DefaultRouter
 from main.views import AdminViewSet, PrizeViewSet, RuleViewSet, RecViewSet, InfoViewSet
-from rest_framework_jwt.views import obtain_jwt_token, verify_jwt_token
+from rest_framework_jwt.views import obtain_jwt_token, verify_jwt_token, ObtainJSONWebToken
 from django.views.generic import TemplateView
 
 router = DefaultRouter()
@@ -24,9 +24,9 @@ router.register(r'prizes', PrizeViewSet, base_name='prizes')
 router.register(r'records', RecViewSet, base_name='records')
 router.register(r'users', AdminViewSet, base_name='users')
 router.register(r'rules', RuleViewSet, base_name='rules')
-router.register(r'infos', InfoViewSet, base_name='info')
+router.register(r'settings', InfoViewSet, base_name='settings')
 urlpatterns = [
-    url(r'login', obtain_jwt_token),
+    url(r'login', ObtainJSONWebToken.as_view()),
     url(r'', include(router.urls)),
     url(r'^info$', verify_jwt_token),
     url(r'^index/', TemplateView.as_view(template_name="index.html"), name="index"),
