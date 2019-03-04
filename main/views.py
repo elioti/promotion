@@ -13,7 +13,9 @@ from django.contrib.auth.hashers import make_password
 import bisect
 import random
 import datetime
+from django.utils import timezone
 import pytz
+from rest_framework_extensions.mixins import ListUpdateModelMixin
 # Create your views here.
 
 
@@ -50,6 +52,13 @@ class RuleViewSet(viewsets.ModelViewSet):
             kwargs['many'] = True
         return super().get_serializer(*args, **kwargs)
 
+    def destroy(self, request, *args, **kwargs):
+        if self.kwargs[self.lookup_field] == 'all':
+            Rule.objects.all().delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            super(RuleViewSet, self).destroy(request, *args, **kwargs)
+
 
 class InfoViewSet(viewsets.ModelViewSet):
     serializer_class = InfoSerializer
@@ -75,6 +84,22 @@ class RecViewSet(viewsets.ModelViewSet):
             return RecSerializer
         else:
             return MemberRecSerializer
+
+    def partial_update(self, request, *args, **kwargs):
+        if self.kwargs[self.lookup_field] == 'send':
+            Rec.objects.filter(isSend=0).update(isSend=1, sendTime=timezone.now())
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            print('1111')
+            return super(RecViewSet, self).partial_update(request, *args, **kwargs)
+
+
+    def destroy(self, request, *args, **kwargs):
+        if self.kwargs[self.lookup_field] == 'all':
+            Rec.objects.all().delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            super(RecViewSet, self).destroy(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
