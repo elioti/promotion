@@ -60,7 +60,7 @@ ROOT_URLCONF = 'promotion.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR, 'dist')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -83,8 +83,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'promotion',  # 数据库名
-        # 'HOST': '192.168.139.136',  # 数据库主机ip
-        'HOST': '192.168.1.11',
+        'HOST': '192.168.139.136',  # 数据库主机ip
+        # 'HOST': '192.168.1.11',
         'PORT': 3306,
         'USER': 'root',  # 登录用户名
         'PASSWORD': 'mysql'  # 登录用户密码
@@ -130,7 +130,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, "static"),
+    os.path.join(BASE_DIR, "dist/static"),
 )
 
 # 认证的模型类

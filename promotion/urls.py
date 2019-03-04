@@ -27,8 +27,8 @@ router.register(r'rules', RuleViewSet, base_name='rules')
 router.register(r'settings', InfoViewSet, base_name='settings')
 urlpatterns = [
     url(r'login', ObtainJSONWebToken.as_view()),
-    url(r'', include(router.urls)),
+    url(r'^api/', include(router.urls)),
     url(r'^info$', verify_jwt_token),
-    url(r'^index/', TemplateView.as_view(template_name="index.html"), name="index"),
+    url(r'', TemplateView.as_view(template_name="index.html"), name="index"),
 
 ]
