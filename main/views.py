@@ -15,7 +15,6 @@ import random
 import datetime
 from django.utils import timezone
 import pytz
-from rest_framework_extensions.mixins import ListUpdateModelMixin
 # Create your views here.
 
 
@@ -74,7 +73,7 @@ class RecViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         params = self.request.query_params
-        if self.action == 'create' or self.action == 'list' and 'user' in params and params['user']:
+        if self.action in ['create', 'list']:
             return [permissions.AllowAny()]
         else:
             return [permissions.IsAdminUser()]
@@ -93,6 +92,16 @@ class RecViewSet(viewsets.ModelViewSet):
             print('1111')
             return super(RecViewSet, self).partial_update(request, *args, **kwargs)
 
+    def list(self, request, *args, **kwargs):
+        if self.request.user.is_staff:
+            return super(RecViewSet, self).list(request, *args, **kwargs)
+        else:
+            recs = Rec.objects.all().order_by('-datetime')[0:30]
+            data = [{
+                'user': rec.user[:2] + '***',
+                'prizeName': rec.prizeName,
+            } for rec in recs]
+            return Response(data)
 
     def destroy(self, request, *args, **kwargs):
         if self.kwargs[self.lookup_field] == 'all':

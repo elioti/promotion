@@ -32,7 +32,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    # 'corsheaders',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    # 'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -146,6 +146,9 @@ JWT_AUTH = {
 
 # rest_framework设置
 REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
     'DEFAULT_FILTER_BACKENDS': (
       'django_filters.rest_framework.DjangoFilterBackend',
     ),
@@ -160,4 +163,4 @@ REST_FRAMEWORK = {
 }
 
 # 跨域设置
-# CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = True
