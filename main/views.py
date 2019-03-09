@@ -39,7 +39,7 @@ class PrizeViewSet(viewsets.ModelViewSet):
 
 
 class RuleViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAuthenticated, )
+    # permission_classes = (IsAuthenticated, )
     serializer_class = RuleSerializer
     queryset = Rule.objects.all().order_by('id')
     filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
@@ -89,18 +89,28 @@ class RecViewSet(viewsets.ModelViewSet):
             Rec.objects.filter(isSend=0).update(isSend=1, sendTime=timezone.now())
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
-            print('1111')
             return super(RecViewSet, self).partial_update(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
         if self.request.user.is_staff:
             return super(RecViewSet, self).list(request, *args, **kwargs)
         else:
-            recs = Rec.objects.all().order_by('-datetime')[0:30]
-            data = [{
-                'user': rec.user[:2] + '***',
-                'prizeName': rec.prizeName,
-            } for rec in recs]
+            user = request.query_params.get('user', None)
+            if user is not None:
+                recs = Rec.objects.filter(user=user).order_by('-datetime')
+                page = self.paginate_queryset(recs)
+                if page is not None:
+                    serializer = self.get_serializer(page, many=True)
+                    return self.get_paginated_response(serializer.data)
+
+                serializer = self.get_serializer(recs, many=True)
+                return Response(serializer.data)
+            else:
+                recs = Rec.objects.all().order_by('-datetime')[0:30]
+                data = [{
+                    'user': rec.user[:2] + '***',
+                    'prizeName': rec.prizeName,
+                } for rec in recs]
             return Response(data)
 
     def destroy(self, request, *args, **kwargs):
@@ -140,9 +150,12 @@ class RecViewSet(viewsets.ModelViewSet):
                 return JsonResponse({'code': 3, 'error': '账号不满足活动要求'})
             except Rule.MultipleObjectsReturned:
                 rule = Rule.objects.last()
+            action = request.data.get('action', None)
+            if action and action == 'login':
+                return JsonResponse({'code': 4, 'user': rule.user, 'score': rule.score})
             # 判断是否有次数
             if rule.score < 1:
-                return JsonResponse({'code': 4, 'error': '账号已没有活动次数'})
+                return JsonResponse({'code': 5, 'error': '账号已没有活动次数'})
             code = rule.get_order()
             if code is None:
                 prize_probs = [prize.probability for prize in prizes]
@@ -177,3 +190,5 @@ class RecViewSet(viewsets.ModelViewSet):
         for w in weights:
             cur = cur + w
             yield cur
+
+
