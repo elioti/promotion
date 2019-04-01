@@ -34,7 +34,7 @@ class RecSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rec
         fields = "__all__"
-        extra_kwargs = {'ip': {'read_only': True}, 'prizeName': {'read_only': True}}
+        extra_kwargs = {'ip': {'read_only': True}, 'prizeId': {'read_only': True}}
 
 
 class MemberRecSerializer(serializers.ModelSerializer):

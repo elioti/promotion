@@ -5,7 +5,7 @@ from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated
 from utils.permission import IsSuperUser
 from django_filters import rest_framework
-from django.http.response import JsonResponse
+from django.http.response import JsonResponse, HttpResponseRedirect
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import permissions, authentication
@@ -15,6 +15,7 @@ import random
 import datetime
 from django.utils import timezone
 import pytz
+from django.db.models import Min
 # Create your views here.
 
 
@@ -34,8 +35,22 @@ class PrizeViewSet(viewsets.ModelViewSet):
     serializer_class = PrizeSerializer
     queryset = Prize.objects.all().order_by('id')
     filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
-    filterset_fields = ('prize_name', 'id')
+    filterset_fields = ('prize_name', 'id', 'grade')
     ordering_fields = ('prize_name', 'id')
+
+    def list(self, request, *args, **kwargs):
+        if request.query_params.get('type', None):
+            prizes = Prize.objects.all()
+            categorys = Prize.objects.values('grade').distinct()
+            context = []
+            for category in categorys:
+                context.append({
+                    'name': category['grade'] or '其他',
+                    'prizes': self.get_serializer(prizes.filter(grade=category['grade']), many=True).data
+                })
+            return JsonResponse(context, safe=False)
+        else:
+            return super(PrizeViewSet, self).list(self, request, *args, **kwargs)
 
 
 class RuleViewSet(viewsets.ModelViewSet):
@@ -56,7 +71,17 @@ class RuleViewSet(viewsets.ModelViewSet):
             Rule.objects.all().delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
-            super(RuleViewSet, self).destroy(request, *args, **kwargs)
+            return super(RuleViewSet, self).destroy(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        if isinstance(serializer.validated_data, list):
+            validated_data = [
+                dict(list(attrs.items()))
+                for attrs in serializer.validated_data
+            ]
+            Rule.objects.bulk_create([Rule(**item) for item in validated_data])
+        else:
+            serializer.save()
 
 
 class InfoViewSet(viewsets.ModelViewSet):
@@ -64,11 +89,19 @@ class InfoViewSet(viewsets.ModelViewSet):
     queryset = Info.objects.all().order_by('id')
 
 
+class RecFilter(rest_framework.FilterSet):
+    min_rec = rest_framework.NumberFilter(field_name="id", lookup_expr='gt')
+
+    class Meta:
+        model = Rec
+        fields = ['user', 'min_rec']
+
+
 class RecViewSet(viewsets.ModelViewSet):
     serializer_class = RecSerializer
     queryset = Rec.objects.all().order_by('id')
     filter_backends = (rest_framework.DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
-    filterset_fields = ('user',)
+    filterset_class = RecFilter
     ordering_fields = ('id',)
 
     def get_permissions(self):
@@ -89,7 +122,24 @@ class RecViewSet(viewsets.ModelViewSet):
             Rec.objects.filter(isSend=0).update(isSend=1, sendTime=timezone.now())
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
-            return super(RecViewSet, self).partial_update(request, *args, **kwargs)
+            instance = self.get_object()
+            flag = request.data.get('isSend', None)
+            if flag is None:
+                return super(RecViewSet, self).partial_update(request, *args, **kwargs)
+            else:
+                if flag == 2 and instance.isSend == 0:
+                    serializer = self.get_serializer(instance, {'isSend': 2, 'censor': request.user.username}, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                    return Response(serializer.data)  # 锁定成功
+                if flag == 1 and request.user.username == instance.censor:
+                    serializer = self.get_serializer(instance, {'isSend': 1, 'sendTime': timezone.now()}, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                    return Response(serializer.data)  # 派送成功
+                else:
+                    print(flag, request.user, instance.censor)
+                    return Response({'code': 1, 'error': '该记录已被锁定', 'data': self.get_serializer(instance).data})  # 操作失败
 
     def list(self, request, *args, **kwargs):
         if self.request.user.is_staff:
@@ -118,7 +168,7 @@ class RecViewSet(viewsets.ModelViewSet):
             Rec.objects.all().delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
-            super(RecViewSet, self).destroy(request, *args, **kwargs)
+            return super(RecViewSet, self).destroy(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -127,10 +177,8 @@ class RecViewSet(viewsets.ModelViewSet):
             ip = self.request.META['HTTP_X_FORWARDED_FOR']
         else:
             ip = self.request.META['REMOTE_ADDR']
-        prizes = Prize.objects.all()
         if self.request.user.is_staff:
-            prize = prizes.get(code=serializer.validated_data['prizeId'])
-            serializer.save(ip=ip, prizeName=prize.prize_name, type=2)
+            serializer.save(ip=ip, type=2)
         else:
             # 抽奖代码
             now = datetime.datetime.utcnow().replace(tzinfo=pytz.timezone('UTC'))
@@ -158,6 +206,7 @@ class RecViewSet(viewsets.ModelViewSet):
                 return JsonResponse({'code': 5, 'error': '账号已没有活动次数'})
             code = rule.get_order()
             if code is None:
+                prizes = Prize.objects.filter(grade=rule.type)
                 prize_probs = [prize.probability for prize in prizes]
                 total = sum(prize_probs)
                 acc = list(self.accumulate(prize_probs))
@@ -172,7 +221,7 @@ class RecViewSet(viewsets.ModelViewSet):
                 rule.score = rule.score - 1
                 rule.save()
             else:
-                prize = prizes.get(code=code)  # todo except
+                prize = Prize.objects.get(code=code, grade=rule.type)  # todo except
                 serializer.save(
                     ip=ip,
                     prizeName=prize.prize_name,

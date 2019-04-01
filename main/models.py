@@ -14,9 +14,10 @@ class SiteAdmin(AbstractUser):
 
 class Prize(models.Model):
     """礼品模型类"""
-    code = models.IntegerField(default=None, verbose_name='礼品编号', unique=True)
+    code = models.IntegerField(default=None, verbose_name='礼品编号')
     prize_name = models.CharField(max_length=64, verbose_name='礼品名称')
     probability = models.IntegerField('中奖概率', default=0)
+    grade = models.CharField('分类', max_length=32)
 
     class Meta:
         verbose_name = '奖品管理'
@@ -31,10 +32,11 @@ class Rule(models.Model):
     内定规则
     """
     user = models.CharField('活动用户', max_length=32)
-    sequence = models.CharField('顺序', max_length=64, default='')
+    sequence = models.CharField('顺序', max_length=64, default='', blank=True)
     flag = models.IntegerField('标记', default=1)
     score = models.IntegerField("活动次数", default=0)
     addTime = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    type = models.CharField('类别', max_length=32, default='默认')
 
     def get_order(self):
         if self.sequence.strip() == '':
@@ -69,14 +71,16 @@ class Rec(models.Model):
     )
     SEND_CHOICES = (
         (0, "未派送"),
-        (1, "已派送")
+        (1, "已派送"),
+        (2, "锁定")
     )
     user = models.CharField('活动用户', max_length=32)
     prizeName = models.CharField('奖品名称', max_length=64)
-    prizeId = models.IntegerField('奖品ID', default=None)
+    prizeId = models.IntegerField('奖品ID', null=True, default=None)
     datetime = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     sendTime = models.DateTimeField(verbose_name='发送时间', null=True, default=None)
     isSend = models.IntegerField('是否发送', choices=SEND_CHOICES, default=0)
+    censor = models.CharField('派送人', max_length=32, null=True)
     ip = models.GenericIPAddressField(verbose_name='抽奖IP')
     type = models.IntegerField('抽奖方式', choices=TYPE_CHOICES, default=0)
 

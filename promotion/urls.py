@@ -26,9 +26,10 @@ router.register(r'users', AdminViewSet, base_name='users')
 router.register(r'rules', RuleViewSet, base_name='rules')
 router.register(r'settings', InfoViewSet, base_name='settings')
 urlpatterns = [
-    url(r'login', ObtainJSONWebToken.as_view()),
+    url(r'^api/login$', ObtainJSONWebToken.as_view()),
+    url(r'^api/info$', verify_jwt_token),
+    url(r'^api/admin$', TemplateView.as_view(template_name="index.html"), name="index"),
     url(r'^api/', include(router.urls)),
-    url(r'^info$', verify_jwt_token),
-    url(r'', TemplateView.as_view(template_name="index.html"), name="index"),
+    # url(r'', TemplateView.as_view(template_name="fontpage.html"), name="main"),
 
 ]
