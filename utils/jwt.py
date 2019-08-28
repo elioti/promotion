@@ -45,6 +45,6 @@ def jwt_response_payload_handler(token, user=None, request=None):
     user_logged_in.send(sender=user.__class__, request=request, user=user)
     return {
         'token': token,
-        'roles': ['admin'if user.is_superuser else 'editor'],
+        'roles': ['1', '2', '3', '4', '5', '6'] if user.is_superuser else user.role.split('|'),
         'name': user.username
     }

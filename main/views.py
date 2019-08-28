@@ -3,7 +3,6 @@ from rest_framework import viewsets
 from .models import *
 from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated
-from utils.permission import IsSuperUser
 from django_filters import rest_framework
 from django.http.response import JsonResponse, HttpResponseRedirect
 from rest_framework.response import Response
@@ -15,12 +14,11 @@ import random
 import datetime
 from django.utils import timezone
 import pytz
-from django.db.models import Min
 # Create your views here.
 
 
 class AdminViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsSuperUser,)
+    permission_classes = (IsAuthenticated,)
     serializer_class = AdminSerializer
     queryset = SiteAdmin.objects.all().order_by('id')
     filter_backends = (rest_framework.DjangoFilterBackend, filters.OrderingFilter,)
@@ -28,6 +26,13 @@ class AdminViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(password=make_password(serializer.validated_data['password']), is_staff=True)
+
+    def perform_update(self, serializer):
+        print(serializer.validated_data)
+        if serializer.validated_data.get('password', False):
+            serializer.save(password=make_password(serializer.validated_data['password']))
+        else:
+            serializer.save()
 
 
 class PrizeViewSet(viewsets.ModelViewSet):
@@ -79,7 +84,12 @@ class RuleViewSet(viewsets.ModelViewSet):
                 dict(list(attrs.items()))
                 for attrs in serializer.validated_data
             ]
-            Rule.objects.bulk_create([Rule(**item) for item in validated_data])
+            for item in validated_data:
+                obj, flag = Rule.objects.get_or_create(defaults=item, user=item['user'])
+                if not flag:
+                    obj.score = obj.score+item['score']
+                    obj.save()
+            # Rule.objects.bulk_create([Rule(**item) for item in validated_data])
         else:
             serializer.save()
 
@@ -94,7 +104,7 @@ class RecFilter(rest_framework.FilterSet):
 
     class Meta:
         model = Rec
-        fields = ['user', 'min_rec']
+        fields = ['user', 'min_rec', 'isSend']
 
 
 class RecViewSet(viewsets.ModelViewSet):
@@ -119,7 +129,10 @@ class RecViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, *args, **kwargs):
         if self.kwargs[self.lookup_field] == 'send':
-            Rec.objects.filter(isSend=0).update(isSend=1, sendTime=timezone.now())
+            Rec.objects.filter(isSend=2, id__in=request.data).update(isSend=1, sendTime=timezone.now())
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        elif self.kwargs[self.lookup_field] == 'lock':
+            Rec.objects.filter(isSend=0, id__in=request.data).update(isSend=2, censor=request.user.username)
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             instance = self.get_object()
@@ -167,6 +180,9 @@ class RecViewSet(viewsets.ModelViewSet):
         if self.kwargs[self.lookup_field] == 'all':
             Rec.objects.all().delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+        if self.kwargs[self.lookup_field] == 'bulk':
+            Rec.objects.filter(id__in=request.data).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return super(RecViewSet, self).destroy(request, *args, **kwargs)
 
@@ -189,7 +205,7 @@ class RecViewSet(viewsets.ModelViewSet):
                 })
             except Info.MultipleObjectsReturned:
                 info = Info.objects.last()
-            if info.is_open is False or now < info.start_time or now > info.end_time:
+            if info.is_open is False or now < info.start_time or now > info.end_time or now.time() < info.day_start or now.time() > info.day_end:
                 return JsonResponse({'code': 2, 'error': '不在活动时间内', 'message': info.errmsg})
             user = serializer.validated_data['user']
             try:
@@ -197,7 +213,7 @@ class RecViewSet(viewsets.ModelViewSet):
             except Rule.DoesNotExist:
                 return JsonResponse({'code': 3, 'error': '账号不满足活动要求'})
             except Rule.MultipleObjectsReturned:
-                rule = Rule.objects.last()
+                rule = Rule.objects.filter(user=user).last()
             action = request.data.get('action', None)
             if action and action == 'login':
                 return JsonResponse({'code': 4, 'user': rule.user, 'score': rule.score})

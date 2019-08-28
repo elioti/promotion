@@ -24,8 +24,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '9cvy*$+9!bv%)v@_=*f^4_fs06z32rluz_uhu2azvhngs^xwcz'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = Falsse
 
 ALLOWED_HOSTS = ['*']
 
@@ -84,7 +84,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'promotion',  # 数据库名
-        'HOST': '192.168.139.136',  # 数据库主机ip
+        'HOST': '192.168.153.130',  # 数据库主机ip
         # 'HOST': '192.168.1.11',
         'PORT': 3306,
         'USER': 'root',  # 登录用户名
@@ -140,7 +140,7 @@ AUTH_USER_MODEL = 'main.SiteAdmin'
 # rest_framework_jwt设置
 JWT_AUTH = {
     'JWT_AUTH_COOKIE': 'jwt',
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=1),
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=8),
     'JWT_RESPONSE_PAYLOAD_HANDLER': 'utils.jwt.jwt_response_payload_handler',
     'JWT_GET_USER_SECRET_KEY': 'utils.jwt.jwt_get_user_secret_key'
 }
@@ -165,3 +165,4 @@ REST_FRAMEWORK = {
 
 # 跨域设置
 CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True

@@ -7,6 +7,7 @@ class SiteAdmin(AbstractUser):
     """
     网站管理员
     """
+    role = models.CharField('权限', max_length=64, default='')
 
     def __str__(self):
         return str(self.username)
@@ -41,7 +42,7 @@ class Rule(models.Model):
     def get_order(self):
         if self.sequence.strip() == '':
             return None
-        order_list = self.sequence.split('|')
+        order_list = self.sequence.split(',')
         if 0 < self.flag <= len(order_list):
             order = order_list[self.flag-1]
             self.flag = self.flag + 1
@@ -101,3 +102,5 @@ class Info(models.Model):
     errmsg = models.CharField(max_length=100, verbose_name='关闭提示', default='活动还未开启')
     start_time = models.DateTimeField(verbose_name='开始时间', null=True, default=None)
     end_time = models.DateTimeField(verbose_name='结束时间', null=True, default=None)
+    day_start = models.TimeField('日启', null=True, default=None)
+    day_end = models.TimeField('日结', null=True, default=None)
